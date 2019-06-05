@@ -1,0 +1,316 @@
+%function fig1BCD()
+
+%% figure 1 BC
+vec=v;
+ROI_list_new=ROI_list;
+s=figure;
+ROI_list_new{1}='Thalamus';
+ROI_list_new{4}='Pallidum';
+ROI_list_new{13}='WM-Frontal';
+for ii=[1,2]
+    subplot(2,2,ii)
+    saveat=fullfile(saveat_1,fit_info.str{ii});
+    path=fullfile(subjects(5).Subject_D,saveat,strcat('fit' ,fit_info.str{ii}, '.mat'));
+    load(path)
+    path=fullfile(subjects(5).Subject_D,saveat,strcat('dist' ,fit_info.str{ii}, '.mat'));
+    load(path)
+    roi=[1,11,4];
+    legendInfo=[];
+    hold on
+    for i=1:length(roi)
+        plot([0,0],[0,0],'LineWidth',2,'color',color_new{roi(i)});
+        legendInfo{i}=strcat(ROI_list_new{vec(roi(i))});
+    end
+    for i=1:length(roi)
+        v1=dist(vec(roi(i))).xbin;
+        v2=dist(vec(roi(i))).ybin;
+        plot(v1,v2,'.','color',color_new{roi(i)},'MarkerSize',15)
+    end
+    for i=1:length(roi)
+        v1=dist(vec(roi(i))).xbin;
+        v2=dist(vec(roi(i))).ybin;
+        
+        err=dist(vec(roi(i))).err;
+        [hl,hp]=boundedline(v1,v2,err,'.','alpha','transparency',0.2,'cmap',color_new{roi(i)}) ;
+        
+    end
+    for i=1:length(roi)
+        v1=dist(vec(roi(i))).xbin;
+        plot(v1,v1*fit(vec(roi(i)),1) +fit(vec(roi(i)),2),'color',color_new{(roi(i))},'LineWidth',2);
+    end
+    grid on
+    hold off
+    xlabel('MTV [fraction]')
+    set(gca,'FontSize',15)
+    if ii==2
+        legend(legendInfo,'Location','northwest')
+        xlim([0.2135 0.37])
+        ylim([0.765 1.27])
+        ylabel('R1 [S^-1]')
+    else
+        xlim([0.2135 0.37])
+        ylim([0.034 0.059]);
+        ylabel('MTsat [p.u.]')
+        tick=get(gca, 'ytick');
+        set(gca, 'ytick', tick, 'yticklabel', tick*100);
+    end
+end
+
+% box plot slops - main MT and R1 slopes
+for j=1:2
+    subplot(2,2,j+2)
+    
+    legend_info=[];
+    slope_sub=nan(length(young_ind).*2,length(vec));
+    for ii=1:length(vec)
+        part=vec(ii);
+        qMRIfit=fit_info.data{j};
+        slope_sub(1:length(young_ind),ii)=squeeze(qMRIfit(part,1,young_ind));
+        if ismember(part,l) && comrl
+            ind=find(l==part);
+            slope_subr=squeeze(qMRIfit(r(ind),1,young_ind));
+            slope_sub(length(young_ind)+1:2*length(young_ind),ii)=slope_subr;
+        end
+    end
+    med=nanmedian(slope_sub,1);
+    hold on
+    [B,I]=sort(med);
+    slope_sub=slope_sub(:,I);
+    mat_color=color_new((I));
+    ROI_list_new_sort=ROI_list_new((I));
+    newORd=[1:5,8:12,7,6,13:19];
+    newORd=vec;
+    for i=1:length(vec)
+        plot([0,0],[0,0],'LineWidth',2,'color',color_new{i});
+        legend_info{i}=(ROI_list_new{(newORd((i)))});
+    end
+    m=[];
+    m=iosr.statistics.boxPlot(reshape(slope_sub,[length(young_ind).*2,1,length(vec)]));
+    m.boxColor=mat_color;
+    m.groupWidth=1;
+    m.lineColor=mat_color;
+    m.medianColor='k';
+    m.notch=false;
+    m.notchLineColor='k';
+    m.lineWidth=1;
+    m.limit='none';
+    grid on
+    pos = get(gca, 'Position');
+    pos(2)=0.15;
+    set(gca, 'Position', pos)
+    if j==1
+        ylabel(['d' fit_info.str{j} '/dMTV [p.u.]']);
+        ylim([-0.1 21]);
+        set(gca, 'ytick', [0 5 10 15 20]);
+    elseif j==3
+        ylabel(['d' fit_info.str{j} '/dMTV [μm^2/ms]']);
+    else
+        ylabel(['d' fit_info.str{j} '/dMTV [S^-^1]']);
+    end
+    hold off
+    set(gca, 'xtick', [], 'xticklabel', []);
+    set(gcf,'color','w');
+    set(gca,'FontSize',15)
+end
+set(gcf, 'Position',[1 1 1040 970]);
+
+ %% SPIDER young bring data
+
+Test_young=nan(4,length(v),length(young_ind).*2);
+Test_young(:,:,1:length(young_ind))=[rot90(fit_info.data{1}(v,[1],young_ind)) ; rot90(fit_info.data{2}(v,[1],young_ind)); rot90(fit_info.data{3}(v,[1],young_ind)); rot90(fit_info.data{4}(v,[1],young_ind))];
+
+for ii=1:length(v)
+    if ismember(v(ii),l) && comrl
+        ind=find(l==v(ii));
+        Test_young(:,ii,length(young_ind)+1:end)=[rot90(fit_info.data{1}(r(ind),[1],young_ind)) ; rot90(fit_info.data{2}(r(ind),[1],young_ind)); rot90(fit_info.data{3}(r(ind),[1],young_ind)); rot90(fit_info.data{4}(r(ind),[1],young_ind))];
+    end
+end
+
+%% Figure 1D
+Multi=[];
+color_spider=color_new;
+
+ROI_list_new={'White-Matter','Thalamus','Putamen','Pallidum','Hippocampus','Frontal Cortex'};
+Multi(:,1) = min(nanmedian(Test_young,3),[],[2]);
+Multi(:,1) = Multi(:,1)-0.5*abs(Multi(:,1));
+Multi(:,2) = max(nanmedian(Test_young,3),[],[2]);
+Multi(:,2) = Multi(:,2)+0.1*abs(Multi(:,2));
+xpos=0.13:0.09:0.13*5;
+ypos=0.8007:-0.1457:0.8007-0.1457*2;
+s=figure('Position', get(0, 'Screensize'));
+for ii=1:length(v)
+    opt_axes=[];
+    opt_lines=[];
+    opt_area=[];
+    opt_area.err        = 'std';
+    opt_area.FaceAlpha  = 0.5;
+    opt_area.Color      = color_spider{ii};
+    opt_lines.LineWidth = 2;
+    opt_lines.LineStyle = '-';
+    opt_lines.Marker    = 'none';
+    opt_lines.Labels    = false;
+    opt_lines.Legend    = [];
+    opt_axes.Multi   = Multi;
+    opt_lines.Color     = color_spider{ii};
+    opt_axes.Background = 'w';
+    opt_axes.subPlot=true;
+    subplot(5,3,ii)
+    set(get(gca,'title'),'Position',[-1 1.0060 0])
+    set(get(gca,'title'),'FontSize',12)
+    polygonplotSHIR((Test_young(:,ii,:)),opt_axes,opt_lines,opt_area);
+    pos = get(gca, 'Position');
+    [x,y] = ind2sub([5,3],ii);
+    pos(1)=xpos(x);
+    pos(2)=ypos(y);
+    set(gca, 'Position', pos)
+end
+
+color_spider=color_new;
+color_spider=cell2mat(color_spider);
+ord=[7:14,1:6];
+opt_axes=[];
+opt_lines=[];
+opt_area=[];67
+opt_area.err        = 'std';
+opt_area.FaceAlpha  = 0.5;
+opt_area.Color      = color_spider(ord,:);
+opt_lines.LineWidth = 2;
+opt_lines.LineStyle = '-';
+opt_lines.Marker    = 'none';
+opt_lines.Labels    = false;
+opt_lines.Legend    = [];
+opt_axes.Multi   = Multi;
+opt_lines.Color     = color_spider(ord,:);
+opt_axes.Background = 'w';
+opt_axes.subPlot=true;
+subplot(5,3,15)
+set(get(gca,'title'),'Position',[-1 1.0060 0])
+set(get(gca,'title'),'FontSize',12)
+polygonplotSHIR((Test_young(:,ord,:)),opt_axes,opt_lines,opt_area);
+pos = get(gca, 'Position');
+[x,y] = ind2sub([5,3],ii);
+pos(1)=xpos(5);
+pos(2)=ypos(3);
+set(gca, 'Position', pos)
+tightfig(s)
+set(gcf, 'Position',[1 1 1140 500]);
+%% Fig 1 legend
+
+s=figure;
+opt_axes=[];
+opt_lines=[];
+opt_area=[];
+opt_area.err        = 'std';
+opt_area.FaceAlpha  = 0.5;
+opt_area.Color      = [ 1 1 1; 1 1 1 ];
+opt_lines.LineWidth = 2;
+opt_lines.LineStyle = '-';
+opt_lines.Marker    = 'none';
+opt_lines.Legend    = [];
+opt_lines.Labels    = true;
+opt_axes.Multi   = Multi;
+opt_lines.Color     = [ 1 1 1; 1 1 1 ];
+opt_axes.Background = 'w';
+%opt_axes.Labels={'MTsat Slope','R1 Slope','MD Slope','R2 Slope'};
+tmp=[];
+tmp(:,:,1)=Multi;
+tmp(:,:,2)=Multi;
+set(get(gca,'title'),'FontSize',16)
+polygonplotSHIR((tmp),opt_axes,opt_lines,opt_area);
+set(gcf, 'Position',[1 1 693 208]);
+
+ROI_list=strrep(ROI_list,'ctx','CTX');
+ROI_list=strrep(ROI_list,'wm','WM');
+figure
+legend_info=[];
+hold on
+for i=1:length(vec)
+    plot([0,0],[0,0],'LineWidth',2,'color',color_new{i});
+    legend_info{i}=(ROI_list{vec((i))});
+end
+legend(legend_info)
+set(get(gca,'legend'),'FontSize',12)
+legend('boxoff')  
+%% qMRI maps
+BM='/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/HUJI/Calibration/Human/H015_NB/2017_5_6/mrQ/SPGR_1/AC_PC_Align_1_1_1/brainMask.nii.gz';
+BM=readFileNifti(BM); BM=logical(BM.data);
+
+MTsat='/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/HUJI/Calibration/Human/H015_NB/2017_5_6/MT/MT_sat.nii.gz';
+MTsat=readFileNifti(MTsat); MTsat=MTsat.data;
+MTsat(~BM)=0;
+
+R1='/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/HUJI/Calibration/Human/H015_NB/2017_5_6/mrQ/OutPutFiles_1/BrainMaps/R1_map_Wlin.nii.gz';
+R1=readFileNifti(R1); R1=R1.data;
+R1(~BM)=0;
+
+TV='/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/HUJI/Calibration/Human/H015_NB/2017_5_6/mrQ/OutPutFiles_1/BrainMaps/TV_map.nii.gz';
+TV=readFileNifti(TV); TV=TV.data;
+TV(~BM)=0;
+
+
+
+hf=figure;
+set(gcf, 'Position',[1 1 1040 600]);
+hf=colordef(hf,'black'); %Set color scheme
+hf.Color='k'; %Set background color of figure window
+subplot(3,1,1)
+[figH,m,cbH] =showMontageMDM(rot90(TV(:,:,75)));
+set(gca,'XColor','none','YColor','none')
+cbH.Location='westoutside';
+cbH.FontSize=12;
+cbH.Ticks=[0 0.4];
+title('MTV map');
+cbH.Label.String='fraction';
+xlim([10 173]);
+ylim([10 210]);
+set(gca,'xtick',[],'xticklabel',[],'ytick',[],'yticklabel',[])
+caxis([0 0.4]);
+lbpos = get(cbH,'label'); 
+pos = get (lbpos,'position'); 
+pos(1) = -0.5;
+set(lbpos, 'position', pos);
+
+subplot(3,1,2)
+[figH,m,cbH] =showMontageMDM(100*rot90(MTsat(:,:,75)));
+cbH.Location='westoutside';
+set(gca,'XColor','none','YColor','none')
+cbH.FontSize=12;
+cbH.Ticks=[0 7];
+title('MTsat map');
+cbH.Label.String='p.u.';
+xlim([10 173]);
+ylim([10 210]);
+set(gca,'xtick',[],'xticklabel',[],'ytick',[],'yticklabel',[])
+caxis([0 7]);
+lbpos = get(cbH,'label'); 
+pos = get (lbpos,'position'); 
+pos(1) = -0.5;
+set(lbpos, 'position', pos);
+
+
+subplot(3,1,3)
+[figH,m,cbH] =showMontageMDM(rot90(R1(:,:,75)));
+set(gca,'XColor','none','YColor','none')
+cbH.Location='westoutside';
+cbH.FontSize=12;
+cbH.Ticks=[0.2 1.4];
+title('R1 map');
+cbH.Label.String='s^-^1';
+xlim([10 173]);
+ylim([10 210]);
+set(gca,'xtick',[],'xticklabel',[],'ytick',[],'yticklabel',[])
+caxis([0.2 1.4]);
+x=get(cbH,'Position');
+x(3)=0.03;
+set(c,'Position',x)
+lbpos = get(cbH,'label'); 
+pos = get (lbpos,'position'); 
+pos(1) = -0.5;
+set(lbpos, 'position', pos);
+
+%% seg
+figure_segMRview(C,r,v,color_new);
+
+
+
+

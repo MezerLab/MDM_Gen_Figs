@@ -1,0 +1,48 @@
+
+% MDM_Gen_Figs
+% ============
+% Code associated with:
+% Filo et. al. (2019). Non-invasive detection of age-related molecular profiles in the human brain
+%     
+% To use th
+
+main_dir='/ems/elsc-labs/mezer-a/Mezer-Lab/projects/code/MTV_Vs_qMRI/figures_code/';
+
+%% Fig.1 and SupFig. 1-2:
+
+Fig1();
+
+%% Figure 2
+
+fig2(main_dir)
+
+%%  Fig. 3 and SupFig. 9,11-12
+
+% figure 3:
+fig3(main_dir,0)
+
+% Sup. figure 9:
+supfig9(main_dir,0)
+
+% SupFig. 11-12 (gene expression):
+supfig11_12(main_dir)
+
+%% Fig. 4 and SupFig. 10 - Porcine analysis:
+
+Fig4_Porcine_MDM_analysis(main_dir)
+
+%% Figure 5-6 and SupFig. 13-18
+
+Fig_5_6_andSup_aging(main_dir)
+
+%% Figure 7 and SupFig 19-20
+
+fig_7_supfig_19_20(main_dir)
+
+%% Sup. Fig. 21-29 - R2* correction
+
+supfig_21_29(main_dir)
+
+%% Sup. Fig. 30 - linear relashionship of qMRI with 1/PD
+
+supfig30(main_dir)

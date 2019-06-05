@@ -1,0 +1,21 @@
+
+%% freesurfer
+
+listT1 = {'/Mezer-lab/analysis/HUJI/Calibration/Human/H009_IR/2016_07_17/mrQ/OutPutFiles_1/T1w/T1w.nii.gz',...
+   '/Mezer-lab/analysis/HUJI/Calibration/Human/H013_NB/2017_05_02/mrQ/OutPutFiles_1/T1w/T1w.nii.gz'...
+   '/Mezer-lab/analysis/HUJI/Calibration/Human/H012_UW/2017_19_01/mrQ/OutPutFiles_1/T1w/T1w.nii.gz'};
+
+for i = 1:length(listT1)
+    temp = readFileNifti(listT1{i});
+    temp.data = 1000*temp.data;
+    
+    dtiWriteNiftiWrapper(temp.data, temp.qto_xyz, [fileparts(listT1{i}), '/T1w_forFreesurfer.nii.gz']);
+end
+
+%% recon-all -i /Mezer-lab/analysis/HUJI/Calibration/Human/H009_IR/2016_07_17/mrQ/OutPutFiles_1/T1w/T1w_forFreesurfer.nii.gz -subjid H009_IR -all
+
+mgzIn  = '/Mezer-lab/analysis/freesurfer_subjects/MS_502_a/mri/aparc+aseg.mgz';
+refImg = '/Mezer-lab/rawData/Stanford_Data/MS/502/20110728_1631/newOutput/OutPutFiles_1/T1w/T1w.nii.gz';
+niiOut = '/Mezer-lab/analysis/freesurfer_subjects/MS_502_a/mri/aparc+aseg.nii.gz';
+orientation = 'RAS'
+fs_mgzSegToNifti(mgzIn, refImg, niiOut, orientation);

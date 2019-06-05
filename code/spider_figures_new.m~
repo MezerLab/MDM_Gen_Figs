@@ -1,0 +1,572 @@
+
+%% Structure no corr
+[subjects]=gen_struc();
+load('/Mezer-lab/projects/code/MTV_Vs_qMRI/MT-PD/code/ROI_list.mat');
+load('/Mezer-lab/projects/code/MTV_Vs_qMRI/MT-PD/code/ROI_list_2.mat');
+set(0, 'DefaultFigureVisible', 'on');
+
+%saveat_1='2017_09_26_flash_Corr_2/';
+saveat_1='2017_12_21_noCorr_fslwnHip';
+
+analysis_d='/Mezer-lab/projects/code/MTV_Vs_qMRI/MT-PD';
+save_fig=1;
+color=    {[ 0    0.4470    0.7410], [0.8500    0.3250    0.0980], [0.9290    0.6940    0.1250], [0.4940    0.1840    0.5560]...
+    ,[0.4660    0.6740    0.1880],[0.3010    0.7450    0.9330], [0.6350    0.0780    0.1840]};
+v=[1:7];
+
+% bar figures
+fit_info=struct();
+%fit_info.str={'MTsat','R1','fR2s'};
+fit_info.str={'R1'};
+
+fit_info.data=cell(1,4);
+%c={subjects.T2f};
+%run_on=find([c{:}]==1);
+run_on=1:length(subjects);
+%dist_mat=cell(4,7);
+for i=1:length(fit_info.str);
+    saveat=fullfile(saveat_1,fit_info.str{i});
+    fit_info.data{i}=zeros(12,6,length(run_on));
+    for j=1:length(run_on)
+        path=fullfile(subjects(run_on(j)).Subject_D,saveat,strcat('fit' ,fit_info.str{i}, '.mat'));
+        load(path);
+        fit_info.data{i}(:,:,j)=fit;
+      %  path_dist=fullfile(subjects(run_on(j)).Subject_D,saveat,strcat('dist' ,fit_info.str{i}, '.mat'));
+      %  load(path_dist);
+       % dist_mat{i,j}=dist;
+    end
+
+    %%
+    % figure all
+%     norm_fit=abs(fit_info.data{i}(1:7,:,:))./repmat(max(abs(fit_info.data{i}(1:7,:,:))),[7,1,1]);
+%     mean_m=mean(norm_fit,3);
+%     mean_m=mean_m(1:7,:)';
+%     se=std((norm_fit),[],3);
+%     se=se(1:7,:)';
+%     colormap=parula;
+%     colorm=colormap([1,20,40,60],:);
+%     h(i)=figure('Position', get(0, 'Screensize'));
+%     [bar_xtick,hb,he]=errorbar_groups(mean_m,se,'bar_colors',colorm,'bar_names',ROI_list_2(1:7));
+%     legend('slope','intersection','mean(TV)',['mean(',fit_info.str{i},')']);
+%     title(['norm mean ' fit_info.str{i} ' over subjects']);
+%     if save_fig==1;
+%         F = getframe(h(i));
+%         imwrite(F.cdata, fullfile(analysis_d,saveat_1,['/bar_mean' fit_info.str{i} '.png']), 'png')
+%         saveas(h(i),fullfile(analysis_d,saveat_1,['/bar_mean' fit_info.str{i} '.fig']))
+%     end
+    %%
+    norm_fit=abs(fit_info.data{i}(1:7,1:4,:));
+    mean_m=mean(norm_fit,3);
+    mean_m=mean_m(1:7,:)';
+    se=std((norm_fit),0,3);
+    se=se(1:7,:)';
+    colormap=parula;
+    colorm=colormap([1,20,40,60],:);
+    h(i)=figure('Position', get(0, 'Screensize'));
+    [bar_xtick,hb,he]=errorbar_groups(mean_m,se,'bar_colors',colorm,'bar_names',ROI_list_2(1:7));
+    legend('slope','intersection','mean(TV)',['mean(',fit_info.str{i},')']);
+    title(['mean ' fit_info.str{i} ' over subjects']);
+     if save_fig==1;
+        F = getframe(h(i));
+        imwrite(F.cdata, fullfile(analysis_d,saveat_1,['/bar_mean' fit_info.str{i} '.png']), 'png')
+        saveas(h(i),fullfile(analysis_d,saveat_1,['/bar_mean' fit_info.str{i} '.fig']))
+     end
+end
+    %%
+%     norm_wm=repmat(fit_info.data{i}(1,:,:),[7,1 1]);
+%     norm_fit=(fit_info.data{i}(1:7,:,:))./norm_wm;
+%     mean_m=mean(norm_fit,3);
+%     mean_m=mean_m(1:7,:)';
+%     se=std((norm_fit),0,3);
+%     se=se(1:7,:)';
+%     colormap=parula;
+%     colorm=colormap([1,20,40,60],:);
+%     h(i)=figure('Position', get(0, 'Screensize'));
+%     [bar_xtick,hb,he]=errorbar_groups(mean_m,se,'bar_colors',colorm,'bar_names',ROI_list_2(1:7));
+%     legend('slope','intersection','mean(TV)',['mean(',fit_info.str{i},')']);
+%     title(['mean ' fit_info.str{i} ' over subjects -1']);
+%%
+
+% scatter
+c={subjects(run_on).group};
+%     c=c([1:6,8:end]);
+young_ind= find(~cellfun(@isempty,strfind(c,'young')));
+%young_ind=young_ind([1:6,8:end]);
+old_ind=find(~cellfun(@isempty,strfind(c,'old')));
+for j=1:length(fit_info.str)
+    parameters={[fit_info.str{j},' slope'] ,[fit_info.str{j},' intersection'],'mean(TV)',['mean(',fit_info.str{j},')'],['R^2'],['cvRMSE']};
+    s=figure('Position', get(0, 'Screensize'));
+    for l=1:size(fit_info.data{j},2)
+        subplot(2,3,l)
+        hold on
+        for i=1:length(v)
+            dat_y=squeeze(fit_info.data{j}(i,l,young_ind));
+            %  dat_x=repmat(i,[1 (size(fit_info.data{j},3))]);
+            dat_x=repmat(i,[1 length(young_ind)]);
+            dat_x = dat_x + rand(size(dat_x))/5;
+            scatter(dat_x,dat_y,'filled','MarkerFaceColor', color{i});
+            dat_y=squeeze(fit_info.data{j}(i,l,old_ind));
+            dat_x=repmat(i,[1 length(old_ind)]);
+            dat_x = dat_x + rand(size(dat_x))/5;            
+            scatter(dat_x,dat_y,'filled','MarkerFaceColor', color{i},'MarkerEdgeColor','k','LineWidth',1);
+            
+        end
+        hold off
+        set(gca,'XTickLabel',ROI_list_2(1:length(v)));
+        xlim([0.75 length(v)+0.75]);
+        title(parameters{l});
+    end
+    %legend(ROI_list_2(1:length(v)));
+    if save_fig==1;
+        F = getframe(s);
+        imwrite(F.cdata, fullfile(analysis_d,saveat_1,['/scatter' fit_info.str{j} '.png']), 'png')
+        saveas(s,fullfile(analysis_d,saveat_1,['/scatter' fit_info.str{j} '.fig']))
+    end
+    
+end
+%% ERROR
+for j=1:length(fit_info.str)
+    Rs=fit_info.data{j};
+    for ii=1:size(fit_info.data{j},1);
+        
+
+
+end
+
+% figure each sub
+h(i+1)=figure('Position', get(0, 'Screensize'));
+%P_labels={'MD slope'; 'MD Intersection';'mean(MD)';'MT slope'; 'MT Intersection';'mean(MT)'; 'T1 slope'; 'T1 Intersection';'mean(TV)';'mean(T1)'};
+P_labels={'MT slope'; 'MT Intersection';'mean(MT)'; 'T1 slope'; 'T1 Intersection';'mean(TV)';'mean(T1)'};
+for j=1:length(run_on)
+    P=[fit_info.data{1}(v,[1,2,4],j)  fit_info.data{2}(v,[1:4],j)];
+    P=P';
+    test_1=abs(P);
+    %  test_1=test_1-(ones(size(test_1,1),1)*min(test_1,[],1));
+    
+    test_1=test_1./(ones(length(v),1)*max(test_1,[],2)')';
+    subplot(4,4,j)
+    axes_interval = 2;
+    spider_plot_ed(test_1', P_labels,axes_interval,color, ...
+        'Marker', 'o',...
+        'LineStyle', '-',...
+        'LineWidth', 2,...
+        'MarkerSize', 6);
+    l=title([subjects(run_on(j)).sub_path(1:4),' ', subjects(run_on(j)).group],...
+        'Fontweight', 'bold',...
+        'FontSize', 11);
+    pos=get(l,'Position');
+    pos(2)=pos(2)+0.15;
+    set(l,...
+        'Position',pos)
+end
+
+b=legend(ROI_list(v));
+pos=get(b,'Position');
+pos(1)=pos(1)+0.6;
+pos(2)=pos(2);
+
+pos(3)=0.3*pos(3);
+pos(4)=0.3*pos(4);
+set(b,...
+    'Position',pos)
+F    = getframe(h(i+1));
+imwrite(F.cdata, fullfile(analysis_d,saveat_1,'/spider_plots.png'), 'png')
+savefig(h(i+1),fullfile(analysis_d,saveat_1,'/spider_plots.fig'));
+
+% Each area
+
+s(2)=figure('Position', get(0, 'Screensize'));
+for i=1:length(v);
+    c={subjects(run_on).group};
+    %c=c([1:6,8:end]);
+    young_ind= find(~cellfun(@isempty,strfind(c,'young')));
+    old_ind=find(~cellfun(@isempty,strfind(c,'old')));
+    P=[squeeze(fit_info.data{1}(i,[1,2,4],:)) ; squeeze(fit_info.data{2}(i,1:4,:))];
+    P=abs(P');
+    test_1=P;
+    %    test_1=test_1-(ones(size(test_1,1),1)*min(test_1,[],1));
+    test_1=test_1./(ones(size(test_1,1),1)*max(test_1,[],1));
+    young_p=test_1(young_ind,:);
+    young_p=mean(young_p,1);
+    old_p=test_1(old_ind,:);
+    subplot(3,3,i)
+    hold on
+    axes_interval = 2;
+    spider_plot_ed_onecolor(young_p, P_labels, axes_interval,color{i},'Marker', 'o','LineStyle','-','LineWidth', 2,'MarkerSize', 6);
+  %  spider_plot_ed(old_p, P_labels, axes_interval,{[0.6 0.6 0.6],[0 0 0],[0.3 0.3 0.3]},'Marker', 'o','LineStyle','-','LineWidth', 3,'MarkerSize', 6);
+    
+    l= title(ROI_list(i));
+    pos=get(l,'Position');
+    pos(2)=pos(2)+0.15;
+    set(l,...
+        'Position',pos)
+end
+
+ht = text(5, 0.5, { 'color- young', 'black- old (derker=older)'} ,'EdgeColor', 'k');
+F    = getframe(s(2));
+imwrite(F.cdata, fullfile(analysis_d,saveat_1,'/spider_plots_areas.png'), 'png')
+savefig(s(2),fullfile(analysis_d,saveat_1,'/spider_plots_areas.fig'));
+
+
+ %% pallidum age MTsat
+% pall=squeeze(norm_fit(4,1:2,:));
+% age_vec=[5 4 3 1 6 7 2];
+% age_val=[27,28,32,57,61,63,69];
+% pall_age=pall(:,age_vec);
+% plot(age_val,pall_age(1,:),'*');
+%% DI single voxels
+% color=[0,0.4470,0.7410;0.8500,0.3250,0.0980;0.9290,0.6940,0.1250;0.4940,0.1840,0.5560;0.4660,  0.6740  ,  0.1880;0.3010  ,  0.7450  ,  0.9330;0.6350   , 0.0780    ,0.1840];
+% 
+% c={subjects(run_on).group};
+% young_ind= find(~cellfun(@isempty,strfind(c,'young')));
+% old_ind=find(~cellfun(@isempty,strfind(c,'old')));
+% range=struct('MTR',[0.4 0.85] ,'R1',[0.5 2.5],'fR2s',[0 0.05],'MTsat',[0.01 0.08]);
+% % DI[area,sub,par]
+% DI_sum_all=zeros(size(dist_mat{1,1},2),size(dist_mat,2),size(dist_mat,1));
+% length_DI=zeros(size(dist_mat{1,1},2),size(dist_mat,2),size(dist_mat,1));
+% DI_se=zeros(size(dist_mat{1,1},2),size(dist_mat,2),size(dist_mat,1));
+% for j=1:size(dist_mat,1) % par
+%         WM_TV=[];k
+%         WM_Par=[];
+%          minmax_bin=zeros(length(young_ind),2);
+%         figure
+%         for l=1:length(young_ind)
+%             WM_TV=[WM_TV ; dist_mat{j,young_ind(l)}(1).TV];
+%             WM_Par=[WM_Par ; dist_mat{j,young_ind(l)}(1).Par];
+%             minmax_bin(l,:)=minmax(dist_mat{j,young_ind(l)}(1).xbin');
+%           hold on
+%             plot(dist_mat{j,young_ind(l)}(1).TV',dist_mat{j,young_ind(l)}(1).Par','*')
+%         end
+%         max_all=max(minmax_bin(:,2));
+%         min_all=min(minmax_bin(:,1));
+%         [a, b]=polyfit(WM_TV(WM_TV>min_all & WM_TV<max_all),WM_Par(WM_TV>min_all & WM_TV<max_all),1);
+%         plot([min(WM_TV) max(WM_TV)],a(1).*[min(WM_TV) max(WM_TV)]+a(2),'k')
+%         title('WM voxels for each young subject')
+%         xlabel('TV')
+%         ylabel(fit_info.str{j});
+%         hold off
+%         
+%         figure
+%         hold on
+%         plot2Dhist(WM_TV',WM_Par',100,[0 0.45],getfield(range, fit_info.str{j}))
+%         plot([0 0.45],a(1).*[0 0.45]+a(2))
+%         hold off
+%         title('2D hist of total WM voxels')
+%         xlabel('TV')
+%         ylabel(fit_info.str{j});
+%         for ii=1:size(dist_mat{1,1},2) %areas
+%             for sub=1:size(dist_mat,2)
+%                 structure_TV=dist_mat{j,sub}(ii).TV;
+%                 structure_Par=dist_mat{j,sub}(ii).Par;
+%                 structure_TV_2=structure_TV(~(structure_Par==0 | structure_TV<min_all | structure_TV>max_all));
+%                 structure_Par_2=structure_Par(~(structure_Par==0 | structure_TV<min_all | structure_TV>max_all));
+%                 Predicted_Par=structure_TV_2.*a(1)+a(2);
+%                 DI=(structure_Par_2-Predicted_Par)./structure_Par_2;
+%                 DI_sum_all(ii,sub,j)=sum(DI);
+%                 DI_se(ii,sub,j)=std(DI);
+%                 length_DI(ii,sub,j)=length(DI);
+%             end
+%         end
+% end
+% 
+% DI_sub=DI_sum_all./length_DI;
+% for j=1:size(DI_sum_all,3)
+% figure
+% for i=1:size(DI_sum_all,2)
+% subplot(2,4,i)
+% 
+% x=abs(DI_sub(:,i,j));
+% hold on
+% for k = 1:length(x)
+%     
+%     h=bar(k,x(k));
+%     set(h,'FaceColor',color(k,:));
+% end
+% set(gca,'XTick',1:7, 'XTickLabel',ROI_list_2(1:7) )
+% title([subjects(run_on(i)).sub_path(1:4),' ', subjects(run_on(i)).group]) ;
+% hold off
+% end
+% suptitle(fit_info.str{j})
+% end
+% 
+% DI_young=DI_sum_all(:,young_ind,:);
+% DI_length_young=length_DI(:,young_ind,:);
+% DI_young=squeeze(sum(DI_young,2))./squeeze(sum(DI_length_young,2));
+% DI_old=DI_sum_all(:,old_ind,:);
+% DI_length_old=length_DI(:,old_ind,:);
+% DI_old=squeeze(sum(DI_old,2))./squeeze(sum(DI_length_old,2));
+% 
+% for j=1:size(DI_sum_all,3)
+%     x=[ DI_old(:,j)  DI_young(:,j)];
+%     figure
+%     bar(abs(x))
+%     set(gca,'XTick',1:7, 'XTickLabel',ROI_list_2(1:7) )
+% legend('old','young');
+% title(fit_info.str{j})
+% end
+%         
+        
+    %% box for young old with mean TV,Par
+    young_ind= find(~cellfun(@isempty,strfind(c,'young')));
+%young_ind=young_ind([1:6,8:end]);
+old_ind=find(~cellfun(@isempty,strfind(c,'old')));
+
+    %vec=[2,4,5,6];
+    vec=[2 4 5 6 7];
+    color=[0,0.4470,0.7410;0.8500,0.3250,0.0980;0.9290,0.6940,0.1250;0.4940,0.1840,0.5560;0.4660,  0.6740  ,  0.1880;0.3010  ,  0.7450  ,  0.9330;0.6350   , 0.0780    ,0.1840];
+
+    x=1;
+   h(1)=figure;
+    for ii=1:length(vec)
+    part=vec(ii);
+    R1slope=fit_info.data{1,2};
+    hip=nan(length(young_ind),2,3);
+    hip(1:length(old_ind),2,1)=squeeze(R1slope(part,1,old_ind));
+    hip(1:length(young_ind),1,1)=squeeze(R1slope(part,1,young_ind));
+    hip(1:length(old_ind),2,2)=squeeze(R1slope(part,3,old_ind));
+    hip(1:length(young_ind),1,2)=squeeze(R1slope(part,3,young_ind));
+    hip(1:length(old_ind),2,3)=squeeze(R1slope(part,4,old_ind));
+    hip(1:length(young_ind),1,3)=squeeze(R1slope(part,4,young_ind));
+
+
+subplot(5,3,x)
+boxplot(hip(:,:,1),'colors',color(part,:),'Whisker',6,'Labels',{'young','old'})
+ylabel(ROI_list_2{part});
+if x==1;
+title('R1 slope');
+end
+x=x+1;
+subplot(5,3,x)
+boxplot(hip(:,:,2),'colors',color(part,:),'Whisker',6,'Labels',{'young','old'})
+if x==2;
+title('mean TV');
+end
+x=x+1;
+subplot(5,3,x)
+boxplot(hip(:,:,3),'colors',color(part,:),'Whisker',6,'Labels',{'young','old'})
+          
+if x==3;
+title('mean R1');
+end
+x=x+1;
+    end
+if save_fig==1;
+    savefig(h(1),fullfile(analysis_d,saveat_1,['/young_old_selected.fig']))
+    saveas(h(1),fullfile(analysis_d,saveat_1,['/young_old_selected.png']))
+    
+end
+       for ii=1:7
+    part=ii;
+    R1slope=fit_info.data{1,1};
+    hip=nan(length(young_ind),2,3);
+    hip(1:length(old_ind),2,1)=squeeze(R1slope(part,1,old_ind));
+    hip(1:length(young_ind),1,1)=squeeze(R1slope(part,1,young_ind));
+    hip(1:length(old_ind),2,2)=squeeze(R1slope(part,3,old_ind));
+    hip(1:length(young_ind),1,2)=squeeze(R1slope(part,3,young_ind));
+    hip(1:length(old_ind),2,3)=squeeze(R1slope(part,4,old_ind));
+    hip(1:length(young_ind),1,3)=squeeze(R1slope(part,4,young_ind));
+
+h(ii)=figure;
+subplot(1,3,1)
+boxplot(hip(:,:,1),'Whisker',6,'Labels',{'young','old'})
+title('R1sat slope');
+subplot(1,3,2)
+boxplot(hip(:,:,2),'Whisker',6,'Labels',{'young','old'})
+title('mean TV');
+subplot(1,3,3)
+boxplot(hip(:,:,3),'Whisker',6,'Labels',{'young','old'})
+title('mean R1sat');
+suptitle(ROI_list{part});
+if save_fig==1;
+    savefig(h(ii),fullfile(analysis_d,saveat_1,[ROI_list{part} '.fig']))
+    saveas(h(ii),fullfile(analysis_d,saveat_1,[ROI_list{part} '.png']))
+    
+end
+    end
+%% box with R1,MTsat
+
+    for ii=1:7
+    part=ii;
+    R1slope=fit_info.data{1,2};
+    MTsatslope=fit_info.data{1,1};
+    hip=nan(length(young_ind),2,4);
+    hip(1:length(old_ind),2,1)=squeeze(R1slope(part,1,old_ind));
+    hip(1:length(young_ind),1,1)=squeeze(R1slope(part,1,young_ind));
+    
+    hip(1:length(old_ind),2,2)=squeeze(R1slope(part,2,old_ind));
+    hip(1:length(young_ind),1,2)=squeeze(R1slope(part,2,young_ind));
+    
+    hip(1:length(old_ind),2,3)=squeeze(MTsatslope(part,1,old_ind));
+    hip(1:length(young_ind),1,3)=squeeze(MTsatslope(part,1,young_ind));
+    
+    hip(1:length(old_ind),2,4)=squeeze(MTsatslope(part,2,old_ind));
+    hip(1:length(young_ind),1,4)=squeeze(MTsatslope(part,2,young_ind));
+
+h(ii)=figure;
+subplot(1,4,1)
+boxplot(hip(:,:,1),'Whisker',6,'Labels',{'young','old'})
+title('R1 slope');
+subplot(1,4,2)
+boxplot(hip(:,:,2),'Whisker',6,'Labels',{'young','old'})
+title('R1 interception');
+subplot(1,4,3)
+boxplot(hip(:,:,3),'Whisker',6,'Labels',{'young','old'})
+title('MTsat slpoe');
+suptitle(ROI_list{part});
+subplot(1,4,4)
+boxplot(hip(:,:,4),'Whisker',6,'Labels',{'young','old'})
+title('MTsat interception');
+suptitle(ROI_list{part});
+
+if save_fig==1;
+    savefig(h(ii),fullfile(analysis_d,saveat_1,[ROI_list{part} '_withMT' '.fig']))
+    saveas(h(ii),fullfile(analysis_d,saveat_1,[ROI_list{part} '_withMT' '.png']))
+    
+end
+    end
+    
+    
+    %% box with mean TV,Par
+    for j=1:length(fit_info.str)
+    R1slope=fit_info.data{1,j};
+   % parameters={[fit_info.str{j},' slope'] ,[fit_info.str{j},' intersection'],'mean(TV)',['mean(',fit_info.str{j},')']};
+    parameters={[fit_info.str{j},' slope'] ,[fit_info.str{j},' intersection']}; 
+   h(j)=figure;
+    for ii=1:length(parameters)
+        subplot(2,1,ii)
+    boxplot(squeeze(R1slope(1:7,ii,young_ind))',ROI_list_2(1:7),'colors', color,'Whisker',6)
+  title(parameters{ii});
+    end
+    if save_fig==1;
+        savefig(h(j),fullfile(analysis_d,saveat_1,[fit_info.str{j} '_slopint' '.fig']))
+        saveas(h(j),fullfile(analysis_d,saveat_1,[fit_info.str{j} '_slopint' '.png']))
+        
+    end
+    end
+ %% fig 3   
+     R1slope=fit_info.data{1,2};
+     parameters={[fit_info.str{2},' slope'] ,[fit_info.str{2},' intersection'],'mean(TV)',['mean(',fit_info.str{2},')']};
+     par_curr=[1,3,4];
+     figure
+     for ii=1:length(par_curr)
+    subplot(2,3,ii)
+    boxplot(squeeze(R1slope([1,4],par_curr(ii),young_ind))',ROI_list_2([1,4]),'colors', color([1,4],:),'Whisker',6)
+    title(parameters{par_curr(ii)});
+     end
+        R1slope=fit_info.data{1,1};
+     parameters={[fit_info.str{1},' slope'] ,[fit_info.str{1},' intersection'],'mean(TV)',['mean(',fit_info.str{1},')']};
+     par_curr=[1,3,4];
+
+     for ii=1:length(par_curr)
+    subplot(2,3,3+ii)
+    boxplot(squeeze(R1slope([2,3],par_curr(ii),young_ind))',ROI_list_2([2,3]),'colors', color([2,3],:),'Whisker',6)
+    title(parameters{par_curr(ii)});
+     end  
+   
+
+
+
+%% regions boxplot
+% c={subjects(run_on).group};
+% young_ind= find(~cellfun(@isempty,strfind(c,'young')));
+% old_ind=find(~cellfun(@isempty,strfind(c,'old')));
+% for j=1:length(fit_info.str)
+%     parameters={[fit_info.str{j},' slope'] ,[fit_info.str{j},' intersection'],'mean(TV)',['mean(',fit_info.str{j},')']};
+%     s=figure('Position', get(0, 'Screensize'));
+%   %  for l=1:size(fit_info.data{j},2)
+%   for l=1:2
+%         subplot(1,2,l)
+%         curr=squeeze(fit_info.data{j}(v,l,young_ind))';
+%         boxplot(curr,ROI_list_2(v),'Whisker',6);
+%         title(parameters{l})
+%   end
+% end
+% 
+% par_curr=[1,2];
+% l=1;
+%         for ii=1:2;
+%             for j=1:2
+%         subplot(2,2,l)
+%         l=l+1;
+%         parameters={[fit_info.str{par_curr(ii)},' slope'] ,[fit_info.str{par_curr(ii)},' intersection']};
+%         curr=squeeze(fit_info.data{par_curr(ii)}(1:6,j,young_ind))';
+%         boxplot(curr,ROI_list_2(v),'Whisker',6);
+%         title(parameters{j})
+%   end
+%   end
+% 
+%   
+%   par_curr=[1,2,3];
+%   for l=1:3
+%         subplot(3,1,l)
+%         curr=squeeze(fit_info.data{par_curr(l)}(v,1,young_ind))';
+%         boxplot(curr,ROI_list_2(v),'Whisker',6);
+%         title(fit_info.str{par_curr(l)})
+%   end
+
+%% mean each area
+color=    {[ 0    0.4470    0.7410], [0.8500    0.3250    0.0980], [0.9290    0.6940    0.1250], [0.4940    0.1840    0.5560]...
+    ,[0.4660    0.6740    0.1880],[0.3010    0.7450    0.9330], [0.6350    0.0780    0.1840]};
+
+% Each area
+%P_labels={'MTsat slope'; 'MTsat Intersection'; 'R1 slope'; 'R1 Intersection'; 'R2s slope'; 'R2s Intersection'};
+P_labels={'MTsat slope'; 'MTsat Intersection'; 'R1 slope'; 'R1 Intersection'};
+v=vec;
+% s(2)=figure('Position', get(0, 'Screensize'));
+% for i=1:length(v);
+%     c={subjects(run_on).group};
+%     young_ind= find(~cellfun(@isempty,strfind(c,'young')));
+%     old_ind=find(~cellfun(@isempty,strfind(c,'old')));
+%    % P=[squeeze(fit_info.data{1}(i,[1,2],:)) ; squeeze(fit_info.data{2}(i,[1,2],:)) ; squeeze(fit_info.data{3}(i,[1,2],:))];
+%    P=[squeeze(fit_info.data{1}(i,[1,2],:)) ; squeeze(fit_info.data{2}(i,[1,2],:))];
+%    P=abs(P');
+%     young_p=P(:,:);
+%     test_1=young_p;
+%     %    test_1=test_1-(ones(size(test_1,1),1)*min(test_1,[],1));
+%     test_1=test_1./(ones(size(test_1,1),1)*max(test_1,[],1));    
+%     test_1=zscore(test_1,0,1);
+%   %  old_p=test_1(old_ind,:);
+%     subplot(3,3,i)
+%     hold on
+%     axes_interval = 2;
+%     spider_plot_ed_onecolor(test_1, P_labels, axes_interval,color{i},'Marker', 'o','LineStyle','-','LineWidth', 2,'MarkerSize', 6);
+%   %  spider_plot_ed(old_p, P_labels, axes_interval,{[0.6 0.6 0.6],[0 0 0],[0.3 0.3 0.3]},'Marker', 'o','LineStyle','-','LineWidth', 3,'MarkerSize', 6);
+%     
+%     l= title(ROI_list(i));
+%     pos=get(l,'Position');
+%     pos(2)=pos(2)+0.15;
+%     set(l,...
+%         'Position',pos)
+% end
+% 
+% ht = text(5, 0.5, { 'color- young', 'black- old (derker=older)'} ,'EdgeColor', 'k');
+% F    = getframe(s(2));
+% imwrite(F.cdata, fullfile(analysis_d,saveat_1,'/spider_plots_areas.png'), 'png')
+% savefig(s(2),fullfile(analysis_d,saveat_1,'/spider_plots_areas.fig'));
+% on top
+color=[0,0.4470,0.7410;0.8500,0.3250,0.0980;0.9290,0.6940,0.1250;0.4940,0.1840,0.5560;0.4660,  0.6740  ,  0.1880;0.3010  ,  0.7450  ,  0.9330;0.6350   , 0.0780    ,0.1840];
+P_labels={'MTsat slope'; 'MTsat Intersection'; 'R1 slope'; 'R1 Intersection'};
+
+v=vec;
+ %P=[rot90(fit_info.data{1}(v,[1,2],:)) ; rot90(fit_info.data{2}(v,[1,2],:)) ; rot90(fit_info.data{3}(v,[1,2],:))];
+ P=[rot90(fit_info.data{1}(v,[1,2],:)) ; rot90(fit_info.data{2}(v,[1,2],:))];
+ P=rot90(P);
+ P=P(:,:,young_ind);
+ P=median(P,3);
+ P=P';
+    test_1=zscore(P);
+    %  test_1=test_1-(ones(size(test_1,1),1)*min(test_1,[],1));
+    
+   % test_1=test_1./(ones(length(v),1)*max(test_1,[],2)')';
+    s=figure;
+    spider_plot_new(test_1', P_labels,axes_interval,1,color(v,:), ...
+        'Marker', 'o',...
+        'LineStyle', '-',...
+        'LineWidth', 4,...
+        'MarkerSize', 6);
+legend(ROI_list_2(v));
+    if save_fig==1;
+        savefig(s,fullfile(analysis_d,saveat_1,[fit_info.str{j} '_spider' '.fig']))
+        saveas(s,fullfile(analysis_d,saveat_1,[fit_info.str{j} '_spider' '.png']))
+        
+    end

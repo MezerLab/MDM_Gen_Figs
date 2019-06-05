@@ -1,0 +1,53 @@
+function [outFile,mt]=  CalculateMTR(S0file, SmtFile, outDir)
+
+%% MTR
+% Calculate MTR
+% MTR = (So − SMT)/So;
+%%
+%%
+
+if notDefined('S0file')
+ [ fileName, pathName ] = uigetfile('*.nii.gz','Choose MT off nifti file ');      
+        if fileName == 0
+            return
+        else
+          S0file= fullfile(pathName,fileName);
+        end
+end
+
+if notDefined('SmtFile')
+ [ fileName, pathName ] = uigetfile('*.nii.gz','Choose MT on nifti file ');      
+        if fileName == 0
+            return
+        else
+          SmtFile= fullfile(pathName,fileName);
+        end
+end
+
+if notDefined('outDir')
+ outDir=pathName;
+end
+
+ %%
+% load S0 (MT off) 
+S0=readFileNifti(S0file);
+% load Smt (MT on) 
+Smt=readFileNifti(SmtFile);
+
+% save xform
+xform=S0.qto_xyz;
+S0=double(S0.data); Smt=double(Smt.data); 
+% create brainmask
+diffS=S0-Smt;
+msk=diffS>0 & diffS<250;
+
+%msk= diffS>30 & diffS<250;
+% makesure its good
+% showMontage(double(msk))
+
+% calculate MTR
+mt=double(diffS)./double(S0);
+mt(~msk)=0;
+%% save
+outFile=fullfile(outDir,'mtr.nii.gz');
+dtiWriteNiftiWrapper(double(mt),xform,outFile)

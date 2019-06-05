@@ -1,0 +1,46 @@
+function [BW2]=Trusted_B1(mrQ_path,out_path)
+
+% This function generates a Trusted B1 mask (Trusted_B1_mask.nii.gz): 
+% voxels in which B1 was extrapulated get zero. 
+% The inputs are the path to the mrQ structure (mrQ_params.mat) and the dir of the output mask.
+
+
+mrQ=load(mrQ_path);
+mrQ=mrQ.mrQ;
+
+% the B1_LR file
+infile=mrQ.B1.epiFitFileName;
+
+% The EPI-T1 wraped to SPGR
+wrap=fullfile(mrQ.spgr_initDir,'/WARP_EPI_SPGRWarp.nii.gz');
+
+% text file for the alignment
+txt=fullfile(mrQ.spgr_initDir,'WARP_EPI_SPGRAffine.txt');
+
+% refrence for the resulution of the output
+ref=mrQ.T1_B1_LWFit;
+
+% the B1_LR_2SPGR output
+outf=fullfile(mrQ.spgr_initDir,'/B1_LR_2SPGR.nii.gz');
+
+interpMethod = '--use-BSpline';
+
+%% Warping
+cmWarp=['xterm -e WarpImageMultiTransform  3 ' infile  ' ' outf ' -R ' ref ' ' wrap ' ' txt ' ' interpMethod];
+[status, ~] = system(cmWarp);
+
+if status ~= 0
+    cmWarp=['WarpImageMultiTransform  3 ' infile  ' ' outf ' -R ' ref ' ' wrap ' ' txt ' ' interpMethod];
+    % Run the command in unix and get back status and results:
+    [~, ~] = system(cmWarp,'-echo');
+end
+
+%% Fill holes 
+b1=readFileNifti(outf);
+BW = imbinarize(b1.data);
+closeBW=BW;
+BW2 = imfill(closeBW,8,'holes');
+out_mask=fullfile(out_path,'/Trusted_B1_mask.nii.gz');
+dtiWriteNiftiWrapper(double(BW2),b1.qto_xyz,out_mask);
+
+end

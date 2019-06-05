@@ -1,0 +1,546 @@
+
+function [TV]=MT_TV_R(T1_path,TV_path,aparcaseg_path,refImg,BM,Subject_D,MTon,MToff,slice_num,MTorT1)
+
+%% T1 & PD
+TV=readFileNifti(TV_path);
+T1=readFileNifti(T1_path);
+inputdata_MT.name={MTon,MToff};
+%% MTR
+
+% To use MTon-MToff/MToff:
+%MTR=readFileNifti(MT_path);
+%MTR=MTR.data;
+% MT_path='/Mezer-lab/analysis/HUJI/Calibration/Human/H009_IR/2016_07_17/MTR_HujiAnalysis/mtr.nii.gz';
+% movTout1='/Mezer-lab/analysis/HUJI/Calibration/Human/H009_IR/2016_07_17/MTR_HujiAnalysis/MTR_Alignto_PD.nii.gz';
+% outPutmat='/Mezer-lab/analysis/HUJI/Calibration/Human/H009_IR/2016_07_17/MTR_HujiAnalysis/MTR_Alignto_PD.mat';
+% eval(['! flirt -in ' MT_path ' -ref ' TV_path  ' -out ' movTout1  ' -omat ' outPutmat ' -dof 12 ']);
+% eval(['! flirt -in ' MT_path,' -ref ',TV_path,' -out ',movTout1,' -init ',outPutmat,' -applyxfm ']);
+% MT_path=movTout1;
+% MT=readFileNifti(MT_path);
+% MTR=MT.data;
+
+% To use MTon/MToff:
+if ~exist(fullfile(Subject_D,'/MTR.nii.gz'),'file')
+    %register synthetic to MT on:
+    [s, niiFiles]=mrQ_input2struct(inputdata_MT,0);
+    for ii=1:2
+        [s1(ii)]= makeStructFromNifti(niiFiles{ii},-2,s(ii),0);
+    end
+    [s,xform] = relaxAlignAll(s1,TV,TV.pixdim,true,1);
+    
+    % calculate MTR
+    MTR=s(1).imData./s(2).imData;
+    MTR(MTR>2)=0;
+    MTR(MTR>1)=1;
+    MTR(MTR<0)=0;
+    MTR(BM==0)=0;
+    dtiWriteNiftiWrapper(MTR,TV.qto_xyz,fullfile(Subject_D,'/MTR.nii.gz'));
+end
+
+MTR=readFileNifti(fullfile(Subject_D,'/MTR.nii.gz'));
+MTR=MTR.data;
+%% TV & T1 data
+TV=TV.data;
+T1=T1.data;
+%% MTR of T1 
+if MTorT1==1;
+    Parameter=MTR;
+    str_par='MTR';
+else
+    Parameter=T1;
+    str_par='T1';
+end
+%% Segmentation
+seg_free_surfer(aparcaseg_path,refImg,Subject_D);
+seg_withedge=readFileNifti(fullfile(Subject_D,'/seg_mask.nii.gz'));
+seg_withedge=seg_withedge.data;
+aparcaseg=readFileNifti(fullfile(Subject_D,'/seg.nii.gz'));
+%% whole brain
+[BinTV,BinPar,std_c,num]=bin2(TV,BM,Parameter,1);
+y=BinPar;
+y(isnan(BinPar) | isnan(BinTV) | num<10000) = [];
+x=BinTV;
+x(isnan(BinPar) | isnan(BinTV) |num<10000 ) = [];
+[a, b]=polyfit(x,y,1);
+min_voxel=12000;
+% figure:
+
+
+h(2)=figure;
+hold on
+plot2Dhist(TV(BM),Parameter(BM),100,[0 0.4],[0.4 0.85],'TV',str_par); %xlim([0.5 1]);ylim([0.5 1])
+plot(BinTV(num>min_voxel),BinPar(num>min_voxel),'*')
+plot([0 0.4],[0 0.4]*a(1) +a(2) );
+title('whole brain')
+legend('dist','median','fit')
+
+hold off
+
+savefig(h(2),fullfile(Subject_D,'/whole_brain_dist.fig'))
+
+%%  WM GM
+
+[seg_noedge]=edge_deletion_MTPD(seg_withedge);
+[BinTV_WM,BinPar_WM,stdWM,numWM]=bin2(TV,seg_noedge,Parameter,20000);
+[BinTV_GM,BinPar_GM,stdGM,numGM]=bin2(TV,seg_noedge,Parameter,40000);
+[BinTV_CSF,BinPar_CSF,stdCSF,numCSF]=bin2(TV,seg_noedge,Parameter,10000);
+
+yWM=BinPar_WM;
+yWM(isnan(BinPar_WM) | isnan(BinTV_WM) | numWM<0.01*sum(numWM) | BinTV_WM<0.25) = [];
+xWM=BinTV_WM;
+xWM(isnan(BinPar_WM) | isnan(BinTV_WM) | numWM<0.01*sum(numWM) | BinTV_WM<0.25) = [];
+yGM=BinPar_GM;
+yGM(isnan(BinPar_GM) | isnan(BinTV_GM) |numGM<0.01*sum(numGM) ) = [];
+xGM=BinTV_GM;
+xGM(isnan(BinPar_GM) | isnan(BinTV_GM) | numGM<0.01*sum(numGM) ) = [];
+% yCSF=BinMTR_CSF;
+% yCSF(isnan(BinMTR_CSF) | isnan(BinTV_CSF) ) = [];
+% xCSF=BinTV_CSF;
+% xCSF(isnan(BinMTR_CSF) | isnan(BinTV_CSF) ) = [];
+[aWM, bWM]=polyfit(xWM,yWM,1);
+[aGM, bGM]=polyfit(xGM,yGM,1);
+% [aCSF, bCSF]=polyfit(xCSF,yCSF,1);
+
+%%
+% figure
+% figure;
+% hold on
+% plot(BinTV_WM,BinT1_WM,'*')
+% plot(BinTV_GM,BinT1_GM,'*')
+% hold off
+
+% h(3)=figure;
+% hold on
+% plot(xWM,yWM,'*')
+% plot(xGM,yGM,'*')
+% %plot(xCSF,yCSF,'*')
+%
+% plot([0 0.4],[0 0.4]*aWM(1) +aWM(2) );
+% plot([0 0.4],[0 0.4]*aGM(1) +aGM(2) );
+% %plot([0 0.4],[0 0.4]*aCSF(1) +aCSF(2) );
+%
+% hold off
+% title('MTR Vs. TV for WM & GM')
+% xlabel('TV')
+% ylabel('MTR')
+% legend('WM','GM','line WM', 'line GM')
+
+h(3)=figure;
+hold on
+plot(xWM,yWM,'*')
+plot(xGM,yGM,'*')
+
+plot([0 0.4],[0 0.4]*aWM(1) +aWM(2) );
+plot([0 0.4],[0 0.4]*aGM(1) +aGM(2) );
+
+hold off
+title('MTR Vs. TV for WM & GM')
+xlabel('TV')
+ylabel(str_par)
+legend('WM','GM','line WM', 'line GM')
+
+savefig(h(3),fullfile(Subject_D,'/WM_GM.fig'))
+
+
+h(4)=figure;
+subplot(1,2,1)
+hold on
+plot2Dhist(TV(seg_noedge==20000),Parameter(seg_noedge==20000),100,[0 0.4],[0.4 0.85],'TV',str_par); %xlim([0.5 1]);ylim([0.5 1])
+plot([0 0.4],[0 0.4]*aWM(1) +aWM(2) );
+plot(xWM,yWM,'*')
+
+legend('dist WM','whole brain')
+title('WM')
+hold off
+
+subplot(1,2,2)
+hold on
+plot2Dhist(TV(seg_noedge==40000),Parameter(seg_noedge==40000),100,[0 0.4],[0.4 0.85],'TV',str_par); %xlim([0.5 1]);ylim([0.5 1])
+plot([0 0.4],[0 0.4]*aGM(1) +aGM(2) );
+plot(xGM,yGM,'*')
+legend('dist GM','whole brain')
+title('GM')
+hold off
+
+% figure
+% hold on
+% plot2Dhist(TV(seg==10000),MTR(seg==10000),10,[0 1],[0 1],'TV','MTR'); %xlim([0.5 1]);ylim([0.5 1])
+% plot([0 0.4],[0 0.4]*aCSF(1) +aCSF(2) );
+% plot(BinTV_CSF,BinMTR_CSF,'*')
+% legend('dist GM','whole brain')
+% title('GM')
+% hold off
+
+
+
+%% maps
+
+Par_Norm_per=Parameter;
+Par_Norm_per(BM)=((aWM(1)*TV(BM)+aWM(2)))./(Parameter(BM));
+h(5)=showMontage(Par_Norm_per);colormap hot;caxis([0 1.5]);
+title(['(' str_par '_W_M)/' str_par])
+showMontage(Par_Norm_per(:,:,slice_num));colormap hot;caxis([0 1.5]);
+%savefig(h(5),fullfile(Subject_D,'/WM_per_montage.fig'))
+title(['(' str_par '_W_M)/' str_par])
+
+par_Norm_r=Parameter;
+par_Norm_r(BM==0)=-10;
+par_Norm_r(BM)=(((aWM(1)*TV(BM)+aWM(2))-Parameter(BM))./(Parameter(BM)));
+%MT_Norm_r(MT_Norm_r>10)=0;
+h(5)=showMontage(par_Norm_r);colormap hot; caxis([-0.4 0.2]);
+title(['(' str_par '_W_M-' str_par ')/' str_par])
+%showMontage(MT_Norm(:,:,67));colormap hot;caxis([0.4 1.4]);
+savefig(h(5),fullfile(Subject_D,'/WM_r_montage.fig'))
+h(6)=showMontage(par_Norm_r(:,:,slice_num));colormap hot; caxis([-0.4 0.2]);
+title(['(' str_par '_W_M-' str_par ')/' str_par])
+savefig(h(6),fullfile(Subject_D,'/WM_r_slice.fig'))
+
+par_Norm=Parameter;
+par_Norm(BM)=abs((TV(BM)))./(Parameter(BM));
+par_Norm(par_Norm>10)=0;
+h(7)=showMontage(par_Norm);colormap hot; caxis([0 1.5]);
+title(['TV/' str_par])
+%showMontage(MT_Norm(:,:,67));colormap hot;caxis([0.4 1.4]);
+savefig(h(7),fullfile(Subject_D,'/WM_r_montage.fig'))
+showMontage(par_Norm(:,:,slice_num));colormap hot; caxis([0 1.5]);
+title(['TV/' str_par])
+%
+par_Norm_GM=Parameter;
+par_Norm_GM(BM==0)=-10;
+par_Norm_GM(BM)=(((aGM(1)*TV(BM)+aGM(2))-Parameter(BM))./(Parameter(BM)));
+%MT_Norm_r(MT_Norm_r>10)=0;
+h(5)=showMontage(par_Norm_GM);colormap hot; caxis([-0.4 0.2]);
+title(['(' str_par '_G_M-' str_par ')/' str_par])
+%showMontage(MT_Norm(:,:,67));colormap hot;caxis([0.4 1.4]);
+savefig(h(5),fullfile(Subject_D,'/GM_r_montage.fig'))
+h(6)=showMontage(par_Norm_GM(:,:,slice_num));colormap hot; caxis([-0.4 0.2]);
+title(['(' str_par '_G_M-' str_par ')/' str_par])
+savefig(h(6),fullfile(Subject_D,'/GM_r_slice.fig'))
+
+
+%% 2 order poly
+% %%  WM GM
+% [BinTV_WM,BinT1_WM,BinMTR_WM,stdWM,numWM]=bin(TV,seg,T1,MTR,20000);
+% [BinTV_GM,BinT1_GM,BinMTR_GM,stdGM,numGM]=bin(TV,seg,T1,MTR,30000);
+% [BinTV_CSF,BinT1_CSF,BinMTR_CSF,stdCSF,numCSF]=bin(TV,seg,T1,MTR,10000);
+%
+% yWM=BinMTR_WM;
+% yWM(isnan(BinMTR_WM) | isnan(BinTV_WM) | numWM<3000 | BinTV_WM<0.25) = [];
+% xWM=BinTV_WM;
+% xWM(isnan(BinMTR_WM) | isnan(BinTV_WM) | numWM<3000 | BinTV_WM<0.25) = [];
+% yGM=BinMTR_GM;
+% yGM(isnan(BinMTR_GM) | isnan(BinTV_GM) |numGM<3000 ) = [];
+% xGM=BinTV_GM;
+% xGM(isnan(BinMTR_GM) | isnan(BinTV_GM) | numGM<3000 ) = [];
+% yCSF=BinMTR_CSF;
+% yCSF(isnan(BinMTR_CSF) | isnan(BinTV_CSF) ) = [];
+% xCSF=BinTV_CSF;
+% xCSF(isnan(BinMTR_CSF) | isnan(BinTV_CSF) ) = [];
+% [aWM, bWM]=polyfit(xWM,yWM,2);
+% [aGM, bGM]=polyfit(xGM,yGM,2);
+% [aCSF, bCSF]=polyfit(xCSF,yCSF,2);
+% %%
+% % figure
+% figure;
+% hold on
+% plot(BinTV_WM,BinT1_WM,'*')
+% plot(BinTV_GM,BinT1_GM,'*')
+% hold off
+%
+% h(3)=figure;
+% hold on
+% plot(xWM,yWM,'*')
+% plot(xGM,yGM,'*')
+% x1 = linspace(0,0.4);
+% y1 = polyval(aWM,x1);
+% x2 = linspace(0,0.4);
+% y2 = polyval(aGM,x2);
+% plot(x1,y1)
+% plot(x2,y2)
+% hold off
+% title('MTR Vs. TV for WM & GM')
+% xlabel('TV')
+% ylabel('MTR')
+% legend('WM','GM','line WM', 'line GM')
+%
+% %savefig(h(3),fullfile(Subject_D,'/WM_GM.fig'))
+%
+%
+% h(4)=figure;
+% subplot(1,2,1)
+% hold on
+% plot2Dhist(TV(seg==20000),MTR(seg==20000),100,[0 0.4],[0.4 0.85],'TV','MTR'); %xlim([0.5 1]);ylim([0.5 1])
+% plot(BinTV(numWM>4000),BinMTR(numWM>4000),'*')
+% plot(x1,y1)
+% legend('dist WM','whole brain')
+% title('WM')
+% hold off
+%
+% subplot(1,2,2)
+% hold on
+% plot2Dhist(TV(seg==30000),MTR(seg==30000),100,[0 0.4],[0.4 0.85],'TV','MTR'); %xlim([0.5 1]);ylim([0.5 1])
+% plot(BinTV(numGM>6000),BinMTR(numGM>6000),'*')
+% plot(x2,y2)
+% legend('dist GM','whole brain')
+% title('GM')
+% hold off
+% %% maps 2 order poly
+% %savefig(h(4),fullfile(Subject_D,'/WM_GM_dist.fig'))
+%
+% % MT_Norm_per=MTR;
+% % MT_Norm_per(BM)=abs((aWM(1)*TV(BM)+aWM(2))-MTR(BM))./(MTR(BM));
+% % h(5)=showMontage(MT_Norm_per);colormap hot;caxis([-0.3 0.3]);
+% % title('(MT_W_M-MT)/MT')
+% % %showMontage(MT_Norm(:,:,67));colormap hot;caxis([0.4 1.4]);
+% % %savefig(h(5),fullfile(Subject_D,'/WM_per_montage.fig'))
+%
+% MT_Norm_r=MTR;
+% MT_Norm_r(BM==0)=0;
+% MT_Norm_r(BM)=(((aWM(1)*TV(BM).^2+(aWM(2))*TV(BM)+aWM(3)))./(MTR(BM)));
+% h(6)=showMontage(MT_Norm_r);colormap hot; caxis([0.5 1.5]);
+% title('(MT_W_M)/MT')
+% %showMontage(MT_Norm(:,:,67));colormap hot;caxis([0.4 1.4]);
+% %savefig(h(6),fullfile(Subject_D,'/WM_r_montage.fig'))
+% showMontage(MT_Norm_r(:,:,67));colormap hot; caxis([0.5 1.5]);
+% title('(MT_W_M)/MT')
+
+
+%% ROI segmentation
+data_egde=aparcaseg.data;
+data_egde(data_egde==251 | data_egde==252 |data_egde==253 |data_egde==254 |data_egde==255)=251; %% CC seg
+data_egde(data_egde==10 | data_egde==9 )=10; %% Left-Thalamus seg
+data_egde(data_egde==48| data_egde==49 )=49; %% Left-Thalamus seg
+C=[2,10,12,13,17,251,41,49,51,52,53];
+ROI=fullfile(Subject_D,'/ROI');
+ROI_list=cell(length(C),1);
+Bin=0.05:0.01:0.4;
+BinTVm=zeros(length(Bin),length(C));
+BinParm=zeros(length(Bin),length(C));
+NUMm=zeros(length(Bin),length(C));
+STDm=zeros(length(Bin),length(C));
+fit=zeros(length(C),2);
+
+[data]=edge_deletion_MTPD(data_egde);
+for i=1:length(C)
+    [BinTV,BinPAR,std_c,num]=bin2(TV,data,Parameter,C(i));
+    BinTVm(:,i)=BinTV;
+    BinParm(:,i)=BinPAR;
+    NUMm(:,i)=num;
+    STDm(:,i)=std_c;
+    
+    % name
+    roi=dir(fullfile(ROI,strcat(num2str(C(i)),'_*')));
+    roi=roi.name(length(num2str(C(i)))+2:end-4);
+    ROI_list{i}=roi;
+    y=BinPAR;
+    y(isnan(BinPAR) | isnan(BinTV) | num<0.05*sum(num) ) = [];
+    x=BinTV;
+    x(isnan(BinPAR) | isnan(BinTV) | num<0.05*sum(num) ) = [];
+    [a, b]=polyfit(x,y,1);
+    fit(i,1)=a(1);
+    fit(i,2)=a(2);
+    disp(i)
+end
+
+%% left subcortical
+
+roi=[find(C==2),find(C==10),find(C==12),find(C==13),find(C==17),find(C==251)];
+color=    {[ 0    0.4470    0.7410], [0.8500    0.3250    0.0980], [0.9290    0.6940    0.1250], [0.4940    0.1840    0.5560]...
+    ,[0.4660    0.6740    0.1880],[0.3010    0.7450    0.9330], [0.6350    0.0780    0.1840], [ 0.2500    0.2500    0.2500]};
+legendInfo=cell(1,length(roi));
+h(8)=figure;
+
+hold on
+for i=1:length(roi)
+    
+    v1=BinTVm(:,roi(i));
+    v2=BinParm(:,roi(i));
+    v1(isnan(BinTVm(:,roi(i))) | isnan(BinParm(:,roi(i))) | NUMm(:,roi(i))<0.05*sum(NUMm(:,roi(i)))) = [];
+    v2(isnan(BinTVm(:,roi(i))) | isnan(BinParm(:,roi(i))) | NUMm(:,roi(i))<0.05*sum(NUMm(:,roi(i)))) = [];
+    plot(v1,v2,'-*','color',color{i})
+    legendInfo{i}=ROI_list{roi(i)};
+end
+for i=1:length(roi)
+        plot([0 0.4],[0 0.4]*fit(i,1) +fit(i,2),'color',color{i});
+end
+
+hold off
+legend(legendInfo)
+title('median MTR Vs. TV for left ROI')
+xlabel('TV')
+ylabel('MTR')
+savefig(h(8),fullfile(Subject_D,'/left_subcortical_median.fig'))
+
+h(9)=figure;
+hold on
+for i=1:length(roi)
+    plot([0 0.4],[0 0.4]*fit(roi(i),1)+fit(roi(i),2),'color',color{i});
+    legendInfo{i}=strcat(ROI_list{roi(i)},' slop=',num2str(fit(roi(i),1)));
+    
+end
+hold off
+legend(legendInfo)
+title('linear fit for left ROI')
+xlabel('TV')
+ylabel('MTR')
+savefig(h(9),fullfile(Subject_D,'/left_subcortical_lin.fig'))
+
+h(10)=figure;
+for i=1:length(roi)
+    subplot(2,4,i)
+    hold on
+    plot2Dhist(TV(data==C(roi(i))),MTR(data==C(roi(i))),100,[0 0.4],[0.4 0.85],'TV','MTR'); %xlim([0.5 1]);ylim([0.5 1])
+    plot([0 0.4],[0 0.4]*fit(roi(i),1)+fit(roi(i),2));
+    x=BinTVm(:,roi(i));
+    y=BinParm(:,roi(i));
+    plot(x(NUMm(:,roi(i))>30),y(NUMm(:,roi(i))>30),'*')
+    %legend('dist GM','whole brain')
+    title(ROI_list{roi(i)})
+    hold off
+end
+savefig(h(10),fullfile(Subject_D,'/left_subcortical_dist.fig'))
+
+%% left-right subcortical
+
+color=    {[ 0    0.4470    0.7410], [0.8500    0.3250    0.0980], [0.9290    0.6940    0.1250], [0.4940    0.1840    0.5560]...
+    ,[0.4660    0.6740    0.1880],[ 0    0.4470    0.7410], [0.8500    0.3250    0.0980], [0.9290    0.6940    0.1250], [0.4940    0.1840    0.5560]...
+    ,[0.4660    0.6740    0.1880]};
+
+roi=[find(C==2),find(C==10),find(C==12),find(C==13),find(C==17),find(C==41),find(C==49)...
+    ,find(C==51),find(C==52),find(C==53)];
+legendInfo=cell(1,length(roi));
+h(11)=figure;
+hold on
+for i=1:length(roi)
+    v1=BinTVm(:,roi(i));
+    v2=BinParm(:,roi(i));
+    v1(isnan(BinTVm(:,roi(i))) | isnan(BinParm(:,roi(i))) | NUMm(:,roi(i))<0.05*sum(NUMm(:,roi(i)))) = [];
+    v2(isnan(BinTVm(:,roi(i))) | isnan(BinParm(:,roi(i))) | NUMm(:,roi(i))<0.05*sum(NUMm(:,roi(i)))) = [];
+    plot(v1,v2,'-*','color',color{i})
+    
+    legendInfo{i}=ROI_list{roi(i)};
+end
+for i=1:length(roi)/2
+plot([0 0.4],[0 0.4]*fit(i,1) +fit(i,2),'color',color{i});
+end
+hold off
+legend(legendInfo)
+title('MTR Vs. TV for left & right ROI')
+xlabel('TV')
+ylabel('MTR')
+savefig(h(11),fullfile(Subject_D,'/left_right_subcortical.fig'))
+
+%% CC fit
+
+par_Norm_CC=MTR;
+par_Norm_CC(BM==0)=-10;
+par_Norm_CC(BM)=(((fit(6,1)*TV(BM)+fit(6,2))-Parameter(BM))./(Parameter(BM)));
+%MT_Norm_r(MT_Norm_r>10)=0;
+h(5)=showMontage(par_Norm_CC);colormap hot; caxis([-0.4 0.2]);
+title(['(' str_par '_C_C-' str_par ')/' str_par])
+%showMontage(MT_Norm(:,:,67));colormap hot;caxis([0.4 1.4]);
+savefig(h(5),fullfile(Subject_D,'/WM_r_montage.fig'))
+h(6)=showMontage(par_Norm_CC(:,:,slice_num));colormap hot; caxis([-0.4 0.2]);
+title(['(' str_par '_C_C-' str_par ')/' str_par])
+savefig(h(6),fullfile(Subject_D,'/WM_r_slice.fig'))
+
+MT_Norm_perCC=MTR;
+MT_Norm_perCC(BM)=(fit(6,1)*TV(BM)+fit(6,2))./(MTR(BM));
+h(5)=showMontage(MT_Norm_perCC);colormap hot;caxis([0 1.5]);
+title('(MT_C_C)/MT')
+title(['(' str_par '_C_C)/' str_par])
+showMontage(MT_Norm_perCC(:,:,slice_num));colormap hot;caxis([0 1.5]);
+%savefig(h(5),fullfile(Subject_D,'/WM_per_montage.fig'))
+title(['(' str_par '_C_C)/' str_par])
+%% left Thalamus
+par_Norm_TH=Parameter;
+par_Norm_TH(BM==0)=-10;
+par_Norm_TH(BM)=(((fit(2,1)*TV(BM)+fit(2,2))-Parameter(BM))./(Parameter(BM)));
+%MT_Norm_r(MT_Norm_r>10)=0;
+h(5)=showMontage(par_Norm_TH);colormap hot; caxis([-0.4 0.2]);
+title(['(' str_par '_T_H-' str_par ')/' str_par])
+%showMontage(MT_Norm(:,:,67));colormap hot;caxis([0.4 1.4]);
+savefig(h(5),fullfile(Subject_D,'/WM_r_montage.fig'))
+h(6)=showMontage(par_Norm_TH(:,:,slice_num));colormap hot; caxis([-0.4 0.2]);
+title(['(' str_par '_T_H-' str_par ')/' str_par])
+savefig(h(6),fullfile(Subject_D,'/WM_r_slice.fig'))
+
+MT_Norm_perTH=Parameter;
+MT_Norm_perTH(BM)=(fit(6,1)*TV(BM)+fit(6,2))./(Parameter(BM));
+h(5)=showMontage(MT_Norm_perTH);colormap hot;caxis([0 1.5]);
+title('(MT_T_H)/MT')
+showMontage(MT_Norm_perTH(:,:,slice_num));colormap hot;caxis([0 1.5]);
+%savefig(h(5),fullfile(Subject_D,'/WM_per_montage.fig'))
+title('(MT_T_H)/MT')
+%% T1
+%
+% h(11)=figure ;
+% hold on
+% plot(BinTV,BinT1,'*')
+% plot([0 0.4],[0 0.4]*a(1) +a(2) );
+% hold off
+% title('whole brain')
+% xlabel('TV')
+% ylabel('T1')
+%
+% savefig(h(11),fullfile(Subject_D,'/whole_brain_T1.fig'))
+%
+%
+% h(12)=figure;
+% hold on
+% plot2Dhist(TV(BM),T1(BM),100,[0 0.4],[0.4 0.85],'TV','T1'); %xlim([0.5 1]);ylim([0.5 1])
+% plot(BinTV,BinMTR,'*')
+% plot([0 0.4],[0 0.4]*a(1) +a(2) );
+% title('whole brain')
+% legend('dist','median','fit')
+%
+% hold off
+%
+% savefig(h(12),fullfile(Subject_D,'/whole_brain_dist_T1.fig'))
+% %
+% yWM=BinT1_WM;
+% yWM(isnan(BinT1_WM) | isnan(BinTV_WM) ) = [];
+% xWM=BinTV_WM;
+% xWM(isnan(BinT1_WM) | isnan(BinTV_WM) ) = [];
+% yGM=BinMTR_GM;
+% yGM(isnan(BinT1_GM) | isnan(BinTV_GM) ) = [];
+% xGM=BinTV_GM;
+% xGM(isnan(BinT1_GM) | isnan(BinTV_GM) ) = [];
+% [aWM, bWM]=polyfit(xWM(6:end),yWM(6:end),1);
+% [aGM, bGM]=polyfit(xGM(6:end),yGM(6:end),1);
+% h(13)=figure;
+% hold on
+% plot(BinTV_WM,BinT1_WM,'*')
+% plot(BinTV_GM,BinT1_GM,'*')
+% plot([0 0.4],[0 0.4]*aWM(1) +aWM(2) );
+% plot([0 0.4],[0 0.4]*aGM(1) +aGM(2) );
+% hold off
+% title('MTR Vs. TV for WM & GM')
+% xlabel('TV')
+% ylabel('MTR')
+% legend('WM','GM','line WM', 'line GM')
+%
+% savefig(h(13),fullfile(Subject_D,'/WM_GM_T1.fig'))
+%
+%
+% h(14)=figure;
+% subplot(1,2,1)
+% hold on
+% plot2Dhist(TV(seg==20000),T1(seg==20000),100,[0 0.4],[0.4 0.85],'TV','MTR'); %xlim([0.5 1]);ylim([0.5 1])
+% %plot([0 0.4],[0 0.4]*a(1) +a(2) );
+% plot(BinTV,BinMTR,'*')
+% legend('dist WM','whole brain')
+% title('WM')
+% hold off
+%
+% subplot(1,2,2)
+% hold on
+% plot2Dhist(TV(seg==30000),T1(seg==30000),100,[0 0.4],[0.4 0.85],'TV','MTR'); %xlim([0.5 1]);ylim([0.5 1])
+% %plot([0 0.4],[0 0.4]*a(1) +a(2) );
+% plot(BinTV,BinMTR,'*')
+% legend('dist GM','whole brain')
+% title('GM')
+% hold off
+%
+% savefig(h(14),fullfile(Subject_D,'/WM_GM_dist_T1.fig'))
+end

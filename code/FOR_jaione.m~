@@ -1,0 +1,25 @@
+
+%% convert MGZ to Nii
+mgzIn  = aparcaseg_path; % path to mgz you want to convert
+freesurferDir=fullfile(analysis,sub_path,'freesurfer'); % dir to save output
+niiOut=fullfile(freesurferDir,'seg.nii.gz'); % nii output name
+refImg=ref_path; % ref image for freesurfer 
+orientation = 'RAS';
+
+fs_mgzSegToNifti(mgzIn, refImg, niiOut, orientation); % function that does the convert
+out=fullfile(freesurferDir,'ROI'); 
+fs_roisFromAllLabels(niiOut,out,'mat'); % creats .mat files of each ROIs within a folder name ROI
+ out=fullfile(freesurferDir,'ROI_map'); 
+fs_roisFromAllLabels(niiOut,out,'nifti') % creats .nii files of each ROIs within a folder name ROI_map
+
+%% Remove edges
+data_egde=seg_path; % path to the segmentation nii
+data_egde=readFileNifti(data_egde);
+[data]=edge_deletion_MTPD(data_egde); % remove edges, data is the seg without edges.
+
+%% Mean over ROIs
+C=[10,11,12,13,17,7,8,18,1028,1029,1030,1011]; % ROIs to analyse
+for i=1:length(C) % for each ROI
+    
+
+end

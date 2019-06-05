@@ -1,0 +1,88 @@
+cd('/ems/elsc-labs/mezer-a/Mezer-Lab/projects/code/MTV_Vs_qMRI/MT-PD/code');
+analysis='/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/HUJI/Calibration/Human/'; % mezerlab analysis
+set(0, 'DefaultFigureVisible', 'off');
+run_all=1;
+analysis_d='/ems/elsc-labs/mezer-a/Mezer-Lab/projects/analysis/MTV_Vs_qMRI'; % MTV_Vs_qMRI analysis
+saveat_1='02_01_19_newMRQ_fuller/';
+%saveat_1='30_12_18_fullerton';
+save_fig=1; % across subjects
+[subjects,run_on]=gen_Subjects(analysis,analysis_d);
+subjects(18).MDtopup=0; % not good
+subjects(3).T2f=1; % have only 3 fa
+%% run on all
+%R1
+saveat=[saveat_1,'R1'];
+run_on=1:length(subjects);
+MTorT1=6;  %(0==T1, 1==MT, 2==MD, 3=T2*flash, 4=T2*sus, 5=MT_sat, 6=R1, 7=R2)
+%c={subjects.T2f};
+%run_on=find([c{:}]==1);
+if run_all==1
+    for ii=1:length(run_on)
+        if ~exist(fullfile(subjects(run_on(ii)).Subject_D,saveat,'/left_right_CTXR1.png'),'file') ...
+                && exist(fullfile('/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/freesurfer_subjects/',subjects(run_on(ii)).sub_path(1:7),'/mri/brainstemSsLabels.v10.FSvoxelSpace.mgz'),'file')
+            disp(run_on(ii))
+            cd('/ems/elsc-labs/mezer-a/Mezer-Lab/projects/code/MTV_Vs_qMRI/MT-PD/code');
+            [TV]=MDM_run(analysis,subjects(run_on(ii)).sub_path,subjects(run_on(ii)).Subject_D,75,MTorT1,save_fig,saveat);
+            close all
+        end
+   end
+    close all
+end
+
+%MT
+saveat=[saveat_1,'MTsat'];
+run_on=1:length(subjects);
+%c={subjects.T2f};
+%run_on=find([c{:}]==1);
+MTorT1=5;  %(0==T1, 1==MT, 2==MD, 3=T2*flash, 4=T2*sus, 5=MT_sat, 6=R1, 7=R2)
+if run_all==1
+    for ii=1:length(run_on)
+        if ~exist(fullfile(subjects(run_on(ii)).Subject_D,saveat,'/left_right_CTXMTsat.png'),'file') ...
+                && exist(fullfile('/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/freesurfer_subjects/',subjects(run_on(ii)).sub_path(1:7),'/mri/brainstemSsLabels.v10.FSvoxelSpace.mgz'),'file')
+            disp(run_on(ii))
+            cd('/ems/elsc-labs/mezer-a/Mezer-Lab/projects/code/MTV_Vs_qMRI/MT-PD/code');
+            [TV]=MDM_run(analysis,subjects(run_on(ii)).sub_path,subjects(run_on(ii)).Subject_D,75,MTorT1,save_fig,saveat);
+            close all
+        end
+   end
+    close all
+end
+
+% MD
+saveat=[saveat_1,'MD'];
+MTorT1=2;  %(0==T1, 1==MT, 2==MD, 3=T2*flash, 4=T2*sus, 5=MT_sat, 6=R1, 7=R2)
+c={subjects.MDtopup};
+run_on=find([c{:}]==1);
+if run_all==1
+    for ii=1:length(run_on)
+        if ~exist(fullfile(subjects(run_on(ii)).Subject_D,saveat,'/left_right_CTXMD.png'),'file') ...
+                && exist(fullfile('/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/HUJI/Calibration/Human/',subjects(run_on(ii)).sub_path,'freesurfer/segFSLMPRAGE_BS_wmparc_B1corrALL.nii.gz'),'file')
+            disp(run_on(ii))
+            cd('/ems/elsc-labs/mezer-a/Mezer-Lab/projects/code/MTV_Vs_qMRI/MT-PD/code');
+            [TV]=MDM_run(analysis,subjects(run_on(ii)).sub_path,subjects(run_on(ii)).Subject_D,75,MTorT1,save_fig,saveat,{'topup',1,'vistasoft',1});
+            close all
+        end
+        close all
+    end
+end
+
+%R2
+saveat=[saveat_1,'R2'];
+MTorT1=7;  %(0==T1, 1==MT, 2==MD, 3=T2*flash, 4=T2*sus, 5=MT_sat, 6=R1, 7=R2)
+% % %[x]=figures(subjects,saveat,run_on,20,'R2',5,5,analysis_d,save_fig);
+c={subjects.T2};
+run_on=find([c{:}]==1);
+%c2={subjects.T2f};
+%run_on=find([c{:}]==1 & [c2{:}]==1);
+if run_all==1
+    for ii=5:length(run_on)
+       if ~exist(fullfile(subjects(run_on(ii)).Subject_D,saveat,'/left_right_CTXR2.png'),'file') ...
+                && exist(fullfile('/ems/elsc-labs/mezer-a/Mezer-Lab/analysis/HUJI/Calibration/Human/',subjects(run_on(ii)).sub_path,'freesurfer/segFSLMPRAGE_BS_wmparc_B1corrALL.nii.gz'),'file')
+            disp(run_on(ii))
+            cd('/ems/elsc-labs/mezer-a/Mezer-Lab/projects/code/MTV_Vs_qMRI/MT-PD/code');
+            [TV]=MDM_run(analysis,subjects(run_on(ii)).sub_path,subjects(run_on(ii)).Subject_D,75,MTorT1,save_fig,saveat);
+            close all
+       end
+   end
+    close all
+end
