@@ -1,6 +1,6 @@
-function supfig11_12(main_dir)
+function fig4_supfig11_12(main_dir)
 
-% this function generates sup. fig. 11-12: MDM correlation with specific gene expression patterns throughout the cortex. 
+% this function generates figuure 4 and sup. fig. 11-12: MDM correlation with specific gene expression patterns throughout the cortex. 
 
 %% load data
 
@@ -136,7 +136,7 @@ signif{2}=find(FDRval(:,2)<0.05);
 signif{3}=find(FDRval(:,3)<0.05);
 
 
-% plot significant correlations (SupFig. 11D-F):
+%% plot significant correlations (SupFig. 11D-F):
 set(0, 'DefaultFigureVisible', 'on');
 CI=[];
 Xd=[];
@@ -186,7 +186,7 @@ for ii=1:length(signif)
     end
 end
 
-%% SupFig. 9B-C: The two gene modules most correlated with MDM measurements
+%% figure 4b: The two gene modules most correlated with MDM measurements
 figure;
 x=1;
 jj_tmp=[1,3];

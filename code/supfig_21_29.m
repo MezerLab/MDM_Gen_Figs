@@ -89,7 +89,7 @@ color_spider=color_new;
 color_spider=cell2mat(color_spider);
 
 % generate figures:
-fig_5_6(hip,color_new,Test_young,Test_old,FDRval);
+fig_6_7(hip,color_new,Test_young,Test_old,FDRval);
 
 %%  supfig 25-28: Aging-related changes in qMRI parameters revealed by the MDM approach – R2* correction. 
 

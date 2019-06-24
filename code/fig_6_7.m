@@ -1,8 +1,8 @@
 
 
-function fig_5_6(hip,color_new,Test_young,Test_old,FDRval)
+function fig_6_7(hip,color_new,Test_young,Test_old,FDRval)
 
-% this function generates Fig. 5-6: Region-specific aging-related molecular changes revealed by the R1/MTsat dependency on MTV. 
+% this function generates Fig. 6-7: Region-specific aging-related molecular changes revealed by the R1/MTsat dependency on MTV. 
 
 vecALL=[7 5 13  ; 12, 1, 8]; % ROIs to show
 for j=1:2 % loop over qMRI parameters

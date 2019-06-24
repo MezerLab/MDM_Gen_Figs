@@ -1,5 +1,5 @@
 
-function fig_6A(diff_M,std_M)
+function fig_8A(diff_M,std_M)
 
 % this function generates figure 7A: Distinct spatial patterns of different aging markers throughout the brain
 

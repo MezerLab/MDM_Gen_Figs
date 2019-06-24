@@ -1,6 +1,6 @@
-function fig4_Porcine_MDM_analysis(main_dir)
+function fig5_Porcine_MDM_analysis(main_dir)
 
-% this function generates figure 4: Post mortem validation of the MDM approach
+% this function generates figure 5: Post mortem validation of the MDM approach
 
 %% Load MRI and histology data of two porcine brains
 
@@ -12,32 +12,32 @@ MTV_histology=data.MTV_histology;  % MTV values from histology for each ROI
 lipids=data.lipids; % lipid compositon (7 lipids)  for 30 ROIs
 lipids_labels=data.lipids_labels; % names of the detected lipids
 
-%% Plot figure 4: Post mortem validation of the MDM approach
+%% Plot figure 5: Post mortem validation of the MDM approach
 
 color=[0.03,0.04,0.35];
 
-% plot figure 4F: The dependency of MTsat on MTV in three example brain regions. 
+% plot figure 5F: The dependency of MTsat on MTV in three example brain regions. 
 figure;
 subplot(3,2,2)
 fig4F(main_dir)
 
-% plot figure 4G: Unique MDM signatures for different brain regions. 
+% plot figure 5G: Unique MDM signatures for different brain regions. 
 subplot(3,2,4)
 fig4G(MDM);
 
-% plot figure 4H: The MDM signatures explain the molecular variability across brain regions. 
+% plot figure 5H: The MDM signatures explain the molecular variability across brain regions. 
 subplot(3,2,6)
 [mdl,slopes_score1,score1]=compare_lipids_post_mortem(ROIs_labels,MDM,lipids./10^9,lipids_labels,1,0,color);
 
-% plot figure 4C: Validation of the qMRI estimation of MTV.  
+% plot figure 5C: Validation of the qMRI estimation of MTV.  
 subplot(3,2,1)
 [mdl]=compare_mtv_post_mortem_allbrains(MTV_histology,MTV_MRI,color);
 
-% plot figure 4E: Standard qMRI parameters do not explain the molecular variability
+% plot figure 5E: Standard qMRI parameters do not explain the molecular variability
 subplot(3,2,5)
 [mdl,slopes_score4,score4]=compare_lipids_post_mortem(ROIs_labels,MDM,lipids./10^9,lipids_labels,4,0,color);
 
-% plot figure 4D: MTV does not explain the molecular variability
+% plot figure 5D: MTV does not explain the molecular variability
 subplot(3,2,3)
 [mdl,slopes_score3,score3]=compare_lipids_post_mortem(ROIs_labels,MDM,lipids./10^9,lipids_labels,3,0,color);
 

@@ -1,7 +1,7 @@
 
-function fig_5_6_andSup_aging(main_dir)
+function fig_6_7_andSup_aging(main_dir)
 
-% This function generates Fig. 5-6: Region-specific aging-related molecular changes revealed by the R1/MTsat dependency on MTV. 
+% This function generates Fig. 6-7: Region-specific aging-related molecular changes revealed by the R1/MTsat dependency on MTV. 
 % and sup fig 13-18
 
 %% bring data
@@ -92,9 +92,9 @@ end
 color_spider=color_new;
 color_spider=cell2mat(color_spider);
 
-%% Fig. 5-6:  Region-specific aging-related molecular changes revealed by the R1/MTsat dependency on MTV. 
+%% Fig. 6-7:  Region-specific aging-related molecular changes revealed by the R1/MTsat dependency on MTV. 
 
-fig_5_6(hip,color_new,Test_young,Test_old,FDRval);
+fig_6_7(hip,color_new,Test_young,Test_old,FDRval);
     
 %% SupFig. 13: aging-related changes in MDM signatures
 
@@ -104,7 +104,7 @@ supfig13_spiderROIs(color_spider,FDRval,fit_info,Test_young,Test_old,v)
 
 box_allROIs_fig(str_vec,hip,fit_info,ROI_list,color_new,FDRval)
 
-%% SupFig. 18:   aging related changes revealed by the 1st principle component of MDM. 
+%% SupFig. 18:  aging related changes revealed by the 1st principle component of MDM. 
 
 box_allROIs_PC(hip,color_new,FDRval,ROI_list)
 

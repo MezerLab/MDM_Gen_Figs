@@ -1,6 +1,6 @@
-function fig_7_supfig_19_20(main_dir)
+function fig_8_supfig_19_20(main_dir)
 
-% this function generates figure 7: The “mosaic” nature of molecular and volumetric aging trajectories
+% this function generates figure 8: The “mosaic” nature of molecular and volumetric aging trajectories
 
 %% Bring data 
 
@@ -15,13 +15,13 @@ load(fullfile(main_dir,'/fig7/human_data_fig7.mat'));
 %   MDM dimentions {'dMTsat/dMTV','dR1/dMTV','dMD/dMTV','dR2/dMTV'} of 14
 %   ROIs for 
 
-%% generate figure 7
+%% generate figure 8
 
-% figure 7A: Distinct spatial patterns of different aging markers throughout the brain
-fig_7A(diff_AllMarkers,std_AllMarkers);
+% figure 8A: Distinct spatial patterns of different aging markers throughout the brain
+fig_8A(diff_AllMarkers,std_AllMarkers);
 
-% figure 7B: The spatial correlation between aging-related changes in different biological markers. 
-fig_7B(diff_AllMarkers);
+% figure 8B: The spatial correlation between aging-related changes in different biological markers. 
+fig_8B(diff_AllMarkers);
 
 %% generate supfigs 19-20
 

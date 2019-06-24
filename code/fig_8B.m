@@ -1,5 +1,5 @@
 
-function fig_7B(diff_M)
+function fig_8B(diff_M)
 
 % this function generates figure 7B: The spatial correlation between aging-related changes in different biological markers. 
 

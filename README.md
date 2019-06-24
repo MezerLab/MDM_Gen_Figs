@@ -1,7 +1,7 @@
 # MDM_Gen_Figs #
 
 Code associated with:
-Filo et. al. (2019). Non-invasive detection of age-related molecular profiles in the human brain
+Filo et. al. (2019). Disentangling molecular alterations from water-content changes in the aging human brain using quantitative MRI.
 
 For more information, please contact: 
 
@@ -19,7 +19,7 @@ To use this code:
 
 ## SOFTWARE REQUIREMENTS ###
   
-* MATLAB          - http://www.mathworks.com/products/matlab/
+* MATLAB          - http://www.mathworks.com/products/matlab/ (Code was tested on MATLAB R2017b)
 * boundedline-pkg - https://github.com/kakearney/boundedline-pkg
 * IoSR Matlab Toolbox - https://github.com/IoSR-Surrey/MatlabToolbox    
 
